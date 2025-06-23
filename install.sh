@@ -25,10 +25,6 @@ cd /root
 wget -O qbittorrent-nox "$DOWNLOAD_URL"
 chmod +x qbittorrent-nox
 
-# 将文件移动到安装路径
-echo "Moving qBittorrent-nox to $INSTALL_PATH..."
-mv qbittorrent-nox "$INSTALL_PATH"
-
 # 运行一次以生成默认配置
 ./qbittorrent-nox &   # 后台运行
 sleep 2                      # 等待 2 秒
