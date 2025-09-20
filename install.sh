@@ -39,6 +39,8 @@ After=network.target
 [Service]
 LimitNOFILE=512000
 User=root
+Restart=on-failure
+RestartSec=5s
 ExecStart=$INSTALL_PATH
 
 [Install]
@@ -98,6 +100,7 @@ tcp_tune
 echo "重新加载 Systemd 配置"
 sleep 1
 systemctl daemon-reload
+systemctl enable --now qbittorrent
 
 # 启动并启用 qBittorrent 服务
 echo "重新启动 qBittorrent 服务"
