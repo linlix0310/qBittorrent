@@ -17,13 +17,17 @@ else
     exit 1
 fi
 
+
+
 INSTALL_PATH="/root/qbittorrent-nox"
 SERVICE_FILE="/etc/systemd/system/qbittorrent.service"
 
 # 下载 qBittorrent-nox
 cd /root
 wget -O qbittorrent-nox "$DOWNLOAD_URL"
-chmod +x qbittorrent-nox
+#chmod +x qbittorrent-nox
+mkdir -p  /root/Downloads
+chmod -R 777 /root
 
 # 运行一次以生成默认配置
 ./qbittorrent-nox &   # 后台运行
