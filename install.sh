@@ -10,7 +10,7 @@ ARCHITECTURE=$(uname -m)
 # 根据架构设置下载链接
 if [ "$ARCHITECTURE" == "x86_64" ]; then
     #DOWNLOAD_URL="https://github.com/userdocs/qbittorrent-nox-static/releases/download/release-4.3.9_v1.2.15/x86_64-qbittorrent-nox"
-    DOWNLOAD_URL="https://github.com/jerry048/Seedbox-Components/blob/main/Torrent%20Clients/qBittorrent/x86_64/Other/qBittorrent%204.3.8%20-%20libtorrent-v1.2.14/qbittorrent-nox"
+    DOWNLOAD_URL="https://raw.githubusercontent.com/jerry048/Seedbox-Components/main/Torrent%20Clients/qBittorrent/x86_64/Other/qBittorrent%204.3.8%20-%20libtorrent-v1.2.14/qbittorrent-nox"
 elif [ "$ARCHITECTURE" == "aarch64" ]; then
     DOWNLOAD_URL="https://github.com/userdocs/qbittorrent-nox-static/releases/download/release-4.3.9_v1.2.15/aarch64-qbittorrent-nox"
 else
