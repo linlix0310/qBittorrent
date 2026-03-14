@@ -11,6 +11,8 @@ ARCHITECTURE=$(uname -m)
 if [ "$ARCHITECTURE" == "x86_64" ]; then
     #DOWNLOAD_URL="https://github.com/userdocs/qbittorrent-nox-static/releases/download/release-4.3.9_v1.2.15/x86_64-qbittorrent-nox"
     DOWNLOAD_URL="https://raw.githubusercontent.com/jerry048/Seedbox-Components/main/Torrent%20Clients/qBittorrent/x86_64/Other/qBittorrent%204.3.8%20-%20libtorrent-v1.2.14/qbittorrent-nox"
+    DOWNLOAD_URL="https://raw.githubusercontent.com/jerry048/Seedbox-Components/main/Torrent%20Clients/qBittorrent/x86_64/Other/qBittorrent%204.3.8%20-%20libtorrent-v1.2.14/qbittorrent-nox"
+
 elif [ "$ARCHITECTURE" == "aarch64" ]; then
     DOWNLOAD_URL="https://github.com/userdocs/qbittorrent-nox-static/releases/download/release-4.3.9_v1.2.15/aarch64-qbittorrent-nox"
 else
@@ -25,10 +27,11 @@ SERVICE_FILE="/etc/systemd/system/qbittorrent.service"
 
 # 下载 qBittorrent-nox
 cd /root
-wget -O qbittorrent-nox "$DOWNLOAD_URL"
-#chmod +x qbittorrent-nox
+curl -L "$DOWNLOAD_URL" -o /root/qbittorrent-nox
+chmod +x /root/qbittorrent-nox
+
 mkdir -p  /root/Downloads
-chmod -R 777 /root
+#chmod -R 777 /root
 
 # 运行一次以生成默认配置
 ./qbittorrent-nox &   # 后台运行
