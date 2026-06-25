@@ -358,6 +358,7 @@ Session::Session(QObject *parent)
     , m_announceToAllTrackers(BITTORRENT_SESSION_KEY("AnnounceToAllTrackers"), false)
     , m_announceToAllTiers(BITTORRENT_SESSION_KEY("AnnounceToAllTiers"), true)
     , m_asyncIOThreads(BITTORRENT_SESSION_KEY("AsyncIOThreadsCount"), 10)
+    , m_minAnnounceInterval(BITTORRENT_SESSION_KEY("MinAnnounceInterval"), 5 * 60)
     , m_hashingThreads(BITTORRENT_SESSION_KEY("HashingThreadsCount"), 2)
     , m_filePoolSize(BITTORRENT_SESSION_KEY("FilePoolSize"), 5000)
     , m_checkingMemUsage(BITTORRENT_SESSION_KEY("CheckingMemUsageSize"), 32)
@@ -1284,6 +1285,9 @@ void Session::loadLTSettings(lt::settings_pack &settingsPack)
     settingsPack.set_int(lt::settings_pack::peer_turnover_interval, peerTurnoverInterval());
 
     settingsPack.set_int(lt::settings_pack::aio_threads, asyncIOThreads());
+
+    printf("lt settings_pack min_announce_interval: %d\n", minAnnounceInterval());
+    settingsPack.set_int(lt::settings_pack::min_announce_interval, minAnnounceInterval());
 #if (LIBTORRENT_VERSION_NUM >= 20000)
     settingsPack.set_int(lt::settings_pack::hashing_threads, hashingThreads());
 #endif
@@ -3173,6 +3177,20 @@ void Session::setAsyncIOThreads(const int num)
         return;
 
     m_asyncIOThreads = num;
+    configureDeferred();
+}
+
+int Session::minAnnounceInterval() const
+{
+    return qMax(5 * 60, m_minAnnounceInterval.get());
+}
+
+void Session::setMinAnnounceInterval(int num)
+{
+    if (num == m_minAnnounceInterval)
+        return;
+
+    m_minAnnounceInterval = num;
     configureDeferred();
 }
 

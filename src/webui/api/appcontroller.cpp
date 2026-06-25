@@ -290,6 +290,8 @@ void AppController::preferencesAction()
     // libtorrent preferences
     // Async IO threads
     data["async_io_threads"] = session->asyncIOThreads();
+    // Min Announce Interval
+    data["min_announce_interval"] = session->minAnnounceInterval();
     // Hashing threads
     data["hashing_threads"] = session->hashingThreads();
     // File pool size
@@ -740,6 +742,10 @@ void AppController::setPreferencesAction()
     // Async IO threads
     if (hasKey("async_io_threads"))
         session->setAsyncIOThreads(it.value().toInt());
+
+    // Min Announce Interval
+    if (hasKey("min_announce_interval"))
+        session->setMinAnnounceInterval(it.value().toInt());
     // Hashing threads
     if (hasKey("hashing_threads"))
         session->setHashingThreads(it.value().toInt());

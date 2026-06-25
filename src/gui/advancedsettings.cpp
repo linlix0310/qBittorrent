@@ -94,6 +94,7 @@ namespace
 #if (LIBTORRENT_VERSION_NUM >= 20000)
         HASHING_THREADS,
 #endif
+        MIN_ANNOUNCE_INTERVAL,
         FILE_POOL_SIZE,
         CHECKING_MEM_USAGE,
 #if (LIBTORRENT_VERSION_NUM < 20000)
@@ -193,6 +194,9 @@ void AdvancedSettings::saveAdvancedSettings()
     // Hashing threads
     session->setHashingThreads(m_spinBoxHashingThreads.value());
 #endif
+    // Min Announce Interval
+    printf("set Min Announce Interval %d \n", m_spinBoxMinAnnounceInterval.value());
+    session->setMinAnnounceInterval(m_spinBoxMinAnnounceInterval.value());
     // File pool size
     session->setFilePoolSize(m_spinBoxFilePoolSize.value());
     // Checking Memory Usage
@@ -432,6 +436,13 @@ void AdvancedSettings::loadAdvancedSettings()
     addRow(HASHING_THREADS, (tr("Hashing threads") + ' ' + makeLink("https://www.libtorrent.org/reference-Settings.html#hashing_threads", "(?)"))
             , &m_spinBoxHashingThreads);
 #endif
+
+    // Min Announce Interval
+    m_spinBoxMinAnnounceInterval.setMinimum(5 * 60);
+    m_spinBoxMinAnnounceInterval.setMaximum(10 * 60 * 60);
+    m_spinBoxMinAnnounceInterval.setValue(session->minAnnounceInterval());
+    addRow(MIN_ANNOUNCE_INTERVAL, (tr("Min Announce Interval") + ' ' + makeLink("https://www.libtorrent.org/reference-Settings.html#min_announce_interval", "(?)"))
+            , &m_spinBoxMinAnnounceInterval);
 
     // File pool size
     m_spinBoxFilePoolSize.setMinimum(1);

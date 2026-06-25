@@ -60,7 +60,7 @@ private:
     void loadAdvancedSettings();
     template <typename T> void addRow(int row, const QString &text, T *widget);
 
-    QSpinBox m_spinBoxAsyncIOThreads, m_spinBoxFilePoolSize, m_spinBoxCheckingMemUsage,
+    QSpinBox m_spinBoxAsyncIOThreads, m_spinBoxMinAnnounceInterval, m_spinBoxFilePoolSize, m_spinBoxCheckingMemUsage,
              m_spinBoxSaveResumeDataInterval, m_spinBoxOutgoingPortsMin, m_spinBoxOutgoingPortsMax, m_spinBoxUPnPLeaseDuration, m_spinBoxPeerToS,
              m_spinBoxListRefresh, m_spinBoxTrackerPort, m_spinBoxSendBufferWatermark, m_spinBoxSendBufferLowWatermark,
              m_spinBoxSendBufferWatermarkFactor, m_spinBoxSocketBacklogSize, m_spinBoxMaxConcurrentHTTPAnnounces, m_spinBoxStopTrackerTimeout,

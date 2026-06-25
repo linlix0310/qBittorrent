@@ -948,6 +948,14 @@
         <table>
             <tr>
                 <td>
+                    <label for="minAnnounceInterval">QBT_TR(min Announce Interval:)QBT_TR[CONTEXT=OptionsDialog]&nbsp;<a href="https://www.libtorrent.org/reference-Settings.html#min_announce_interval" target="_blank">(?)</a></label>
+                </td>
+                <td>
+                    <input type="text" id="minAnnounceInterval" style="width: 15em;" />
+                </td>
+            </tr>
+            <tr>
+                <td>
                     <label for="asyncIOThreads">QBT_TR(Asynchronous I/O threads:)QBT_TR[CONTEXT=OptionsDialog]&nbsp;<a href="https://www.libtorrent.org/reference-Settings.html#aio_threads" target="_blank">(?)</a></label>
                 </td>
                 <td>
@@ -1895,6 +1903,7 @@
                         $('resolvePeerCountries').setProperty('checked', pref.resolve_peer_countries);
                         // libtorrent section
                         $('asyncIOThreads').setProperty('value', pref.async_io_threads);
+                        $('minAnnounceInterval').setProperty('value', pref.min_announce_interval);
                         $('hashingThreads').setProperty('value', pref.hashing_threads);
                         $('filePoolSize').setProperty('value', pref.file_pool_size);
                         $('outstandMemoryWhenCheckingTorrents').setProperty('value', pref.checking_memory_use);
@@ -2285,6 +2294,7 @@
 
             // libtorrent section
             settings.set('async_io_threads', $('asyncIOThreads').getProperty('value'));
+            settings.set('min_announce_interval', $('minAnnounceInterval').getProperty('value'));
             settings.set('hashing_threads', $('hashingThreads').getProperty('value'));
             settings.set('file_pool_size', $('filePoolSize').getProperty('value'));
             settings.set('checking_memory_use', $('outstandMemoryWhenCheckingTorrents').getProperty('value'));
