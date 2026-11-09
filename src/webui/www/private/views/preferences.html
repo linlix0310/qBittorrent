@@ -365,6 +365,50 @@
 </div>
 
 <div id="SpeedTab" class="PrefTab invisible">
+    <style>
+        #governor-settings input[type="number"] { width: 9em; max-width: 100%; }
+        #governor-settings input[type="text"] { width: 15em; max-width: 100%; }
+        #governor-settings td, #governor-settings th { padding: .25em .35em; text-align: left; }
+        #governor-settings p { line-height: 1.55; }
+        #governor-settings button { margin: .2em .3em .2em 0; }
+    </style>
+    <fieldset id="governor-settings" class="settings">
+        <legend>单种子自动限速（Governor）</legend>
+        <p>按标签或分类匹配，每个种子独立计账。此区域独立保存，保存后重启 qBittorrent 生效。</p>
+        <p data-role="status" role="status" aria-live="polite">正在读取限速策略…</p>
+        <div class="formRow">
+            <input type="checkbox" id="governor-enabled" data-governor="Enabled" disabled />
+            <label for="governor-enabled">启用单种子自动限速</label>
+        </div>
+        <table style="width: 100%;">
+            <tr><td><label for="governor-tags">管理标签</label></td><td><input id="governor-tags" data-governor="TargetTags" type="text" maxlength="4096" placeholder="u2, other" disabled /></td></tr>
+            <tr><td><label for="governor-categories">管理分类</label></td><td><input id="governor-categories" data-governor="TargetCategories" type="text" maxlength="4096" placeholder="u2" disabled /></td></tr>
+            <tr><td><label for="governor-period">统计周期</label></td><td><input id="governor-period" data-governor="PeriodSeconds" type="number" step="any" min="0.1666666667" max="43200" disabled /> 分钟</td></tr>
+            <tr><td><label for="governor-recovery">恢复延迟</label></td><td><input id="governor-recovery" data-governor="RecoveryDelaySeconds" type="number" step="1" min="0" disabled /> 秒</td></tr>
+            <tr><td><label for="governor-average">触发均速</label></td><td><input id="governor-average" data-governor="AverageUploadBps" type="number" step="any" min="0" disabled /> MiB/s</td></tr>
+            <tr><td><label for="governor-release">解除均速</label></td><td><input id="governor-release" data-governor="ReleaseAverageBps" type="number" step="any" min="0" disabled /> MiB/s</td></tr>
+            <tr><td><label for="governor-buffer">刹车缓冲</label></td><td><input id="governor-buffer" data-governor="BrakeBufferBytes" type="number" step="any" min="0" disabled /> GiB</td></tr>
+            <tr><td><label for="governor-soft">后段上传限速</label></td><td><input id="governor-soft" data-governor="SoftUploadBps" type="number" step="any" min="0" disabled /> MiB/s</td></tr>
+            <tr><td><label for="governor-up-brake">上传刹车速度</label></td><td><input id="governor-up-brake" data-governor="BrakeUploadBps" type="number" step="any" min="0" disabled /> KiB/s</td></tr>
+            <tr><td><label for="governor-dl-brake">下载刹车速度</label></td><td><input id="governor-dl-brake" data-governor="BrakeDownloadBps" type="number" step="any" min="0" disabled /> KiB/s</td></tr>
+            <tr><td><label for="governor-up-progress">上传介入进度</label></td><td><input id="governor-up-progress" data-governor="UploadProgress" type="number" step="any" min="0" max="100" disabled /> %</td></tr>
+            <tr><td><label for="governor-dl-progress">下载介入进度</label></td><td><input id="governor-dl-progress" data-governor="DownloadProgress" type="number" step="any" min="0" max="100" disabled /> %</td></tr>
+            <tr><td><label for="governor-lookahead">预测时间</label></td><td><input id="governor-lookahead" data-governor="LookaheadSeconds" type="number" step="1" min="0" max="300" disabled /> 秒（0 为关闭预测）</td></tr>
+        </table>
+        <p>多个标签、分类用英文逗号分隔，命中任意一个即受管；区分大小写。两项留空则不匹配任何种子。</p>
+        <p data-role="preview" aria-live="polite"></p>
+        <p data-role="error" role="alert" style="color: #b42318;"></p>
+        <div class="formRow">
+            <button type="button" data-action="save" disabled>保存限速策略</button>
+            <button type="button" data-action="reload">重新读取</button>
+            <button type="button" data-action="defaults" disabled>填入默认值</button>
+        </div>
+        <details style="margin-top: 1em;">
+            <summary>查看当前生效值</summary>
+            <table><tbody data-role="active"></tbody></table>
+        </details>
+        <p>页面底部的“保存”只保存其他设置。策略速度会与手动限速取更低值。重启后可能保守限速至下个周期；本地周期不与 Tracker 汇报同步。</p>
+    </fieldset>
     <fieldset class="settings">
         <legend>QBT_TR(Global Rate Limits)QBT_TR[CONTEXT=OptionsDialog]</legend>
         <table>
@@ -1945,6 +1989,8 @@
         };
 
         const applyPreferences = function() {
+            const governorRoot = document.getElementById('governor-settings');
+            if (governorRoot && governorRoot.governorMayClose && !governorRoot.governorMayClose()) return;
             const settings = new Hash();
             // Validate form data
             // Downloads tab
@@ -2357,6 +2403,9 @@
         });
 
         loadPreferences();
+        const governorRoot = document.getElementById('governor-settings');
+        if (window.qBittorrent.GovernorEditor) window.qBittorrent.GovernorEditor.mount(governorRoot);
+        else governorRoot.querySelector('[data-role="status"]').textContent = '限速器脚本尚未加载，请强制刷新 WebUI 页面。';
 
         return exports();
     })();

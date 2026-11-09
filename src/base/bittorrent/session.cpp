@@ -472,6 +472,8 @@ Session::Session(QObject *parent)
     , m_recentErroredTorrentsTimer {new QTimer {this}}
     , m_networkManager {new QNetworkConfigurationManager {this}}
 {
+    // Pin the active Governor config at startup, even with an empty job list.
+    governorConfiguration();
     if (port() < 0)
         m_port = Utils::Random::rand(1024, 65535);
 
@@ -2237,6 +2239,9 @@ bool Session::addTorrent_impl(const std::variant<MagnetUri, TorrentInfo> &source
 bool Session::loadTorrent(LoadTorrentParams params)
 {
     lt::add_torrent_params &p = params.ltAddTorrentParams;
+    const auto &governor = governorConfiguration();
+    if (governor.enabled && (p.added_time <= 0))
+        p.added_time = QDateTime::currentSecsSinceEpoch();
 
 #if (LIBTORRENT_VERSION_NUM < 20000)
     p.storage = customStorageConstructor;
@@ -2253,8 +2258,20 @@ bool Session::loadTorrent(LoadTorrentParams params)
 #endif
     m_loadingTorrents.insert(id, params);
 
+    // Keep the user's original params in m_loadingTorrents. Apply a temporary
+    // startup brake to the native COPY before peers can transfer payload.
+    auto nativeParams = p;
+    bool managed = governor.categories.contains(params.category);
+    for (const auto &tag : asConst(params.tags))
+        managed = managed || governor.tags.contains(tag);
+    if (governor.enabled && managed)
+    {
+        nativeParams.upload_limit = Governor::combineLimits(p.upload_limit, governor.policy.brakeUpload);
+        nativeParams.download_limit = Governor::combineLimits(p.download_limit, governor.policy.brakeDownload);
+    }
+
     // Adding torrent to BitTorrent session
-    m_nativeSession->async_add_torrent(p);
+    m_nativeSession->async_add_torrent(nativeParams);
 
     return true;
 }
@@ -4022,6 +4039,7 @@ void Session::handleTorrentResumeDataReady(TorrentImpl *const torrent, const Loa
     resumeData["qBt-seedStatus"] = data.hasSeedStatus;
     resumeData["qBt-contentLayout"] = Utils::String::fromEnum(data.contentLayout).toStdString();
     resumeData["qBt-firstLastPiecePriority"] = data.firstLastPiecePriority;
+    resumeData["qBt-governor-v1"] = data.governorState.toStdString();
 
     const QString filename = QString::fromLatin1("%1.fastresume").arg(torrent->id().toString());
     QMetaObject::invokeMethod(m_resumeDataSavingManager
@@ -4267,6 +4285,8 @@ bool Session::loadTorrentResumeData(const QByteArray &data, const TorrentInfo &m
     if (ec || (root.type() != lt::bdecode_node::dict_t)) return false;
 
     torrentParams.restored = true;
+    const auto governorData = root.dict_find_string_value("qBt-governor-v1");
+    torrentParams.governorState = QByteArray(governorData.data(), static_cast<int>(governorData.size()));
     torrentParams.category = fromLTString(root.dict_find_string_value("qBt-category"));
     torrentParams.name = fromLTString(root.dict_find_string_value("qBt-name"));
     torrentParams.savePath = Profile::instance()->fromPortablePath(
@@ -4609,6 +4629,7 @@ void Session::createTorrent(const lt::torrent_handle &nativeHandle)
 
     auto *const torrent = new TorrentImpl {this, m_nativeSession, nativeHandle, params};
     m_torrents.insert(torrent->id(), torrent);
+    torrent->updateGovernor();
 
     const bool hasMetadata = torrent->hasMetadata();
 
@@ -5034,6 +5055,11 @@ void Session::handleStateUpdateAlert(const lt::state_update_alert *p)
         torrent->handleStateUpdate(status);
         updatedTorrents.push_back(torrent);
     }
+
+    // state_update_alert contains only changed jobs; tick unchanged jobs too so
+    // recovery deadlines and tag/category changes are processed while idle.
+    for (TorrentImpl *const torrent : asConst(m_torrents))
+        torrent->updateGovernor();
 
     if (!updatedTorrents.isEmpty())
         emit torrentsUpdated(updatedTorrents);

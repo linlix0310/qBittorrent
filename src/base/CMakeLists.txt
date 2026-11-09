@@ -29,6 +29,8 @@ add_library(qbt_base STATIC
     bittorrent/torrentcontentlayout.h
     bittorrent/torrentcreatorthread.h
     bittorrent/torrentimpl.h
+    bittorrent/torrentgovernor.h
+    bittorrent/torrentgovernorcore.h
     bittorrent/torrentinfo.h
     bittorrent/tracker.h
     bittorrent/trackerentry.h
@@ -105,6 +107,7 @@ add_library(qbt_base STATIC
     bittorrent/portforwarderimpl.cpp
     bittorrent/resumedatasavingmanager.cpp
     bittorrent/session.cpp
+    bittorrent/torrentgovernor.cpp
     bittorrent/speedmonitor.cpp
     bittorrent/statistics.cpp
     bittorrent/torrent.cpp

@@ -37,7 +37,9 @@
 #include <libtorrent/torrent_handle.hpp>
 #include <libtorrent/torrent_status.hpp>
 
+#include <QByteArray>
 #include <QDateTime>
+#include <QElapsedTimer>
 #include <QHash>
 #include <QMap>
 #include <QObject>
@@ -50,6 +52,7 @@
 #include "speedmonitor.h"
 #include "torrent.h"
 #include "torrentinfo.h"
+#include "torrentgovernor.h"
 
 namespace BitTorrent
 {
@@ -64,6 +67,7 @@ namespace BitTorrent
         QString category;
         QSet<QString> tags;
         QString savePath;
+        QByteArray governorState;
         TorrentContentLayout contentLayout = TorrentContentLayout::Original;
         bool firstLastPiecePriority = false;
         bool hasSeedStatus = false;
@@ -196,6 +200,7 @@ namespace BitTorrent
         qlonglong timeSinceActivity() const override;
         int downloadLimit() const override;
         int uploadLimit() const override;
+        QJsonObject governorStatus() const override;
         bool superSeeding() const override;
         bool isDHTDisabled() const override;
         bool isPEXDisabled() const override;
@@ -253,6 +258,7 @@ namespace BitTorrent
 
         void handleAlert(const lt::alert *a);
         void handleStateUpdate(const lt::torrent_status &nativeStatus);
+        void updateGovernor();
         void handleTempPathChanged();
         void handleCategorySavePathChanged();
         void handleAppendExtensionToggled();
@@ -268,6 +274,7 @@ namespace BitTorrent
         void updateStatus();
         void updateStatus(const lt::torrent_status &nativeStatus);
         void updateState();
+        void applyGovernorLimits();
 
         void handleFastResumeRejectedAlert(const lt::fastresume_rejected_alert *p);
         void handleFileCompletedAlert(const lt::file_completed_alert *p);
@@ -304,6 +311,19 @@ namespace BitTorrent
         lt::session *m_nativeSession;
         lt::torrent_handle m_nativeHandle;
         lt::torrent_status m_nativeStatus;
+        int m_userUploadLimit = 0;
+        int m_userDownloadLimit = 0;
+        int m_governorUploadLimit = 0;
+        int m_governorDownloadLimit = 0;
+        int m_appliedUploadLimit = -1;
+        int m_appliedDownloadLimit = -1;
+        bool m_governorMatched = false;
+        bool m_governorRestartUncertain = false;
+        Governor::Engine m_governor {governorConfiguration().policy};
+        Governor::Decision m_governorDecision;
+        QElapsedTimer m_governorClock;
+        QElapsedTimer m_governorCheckpoint;
+        qint64 m_governorLastWall = 0;
         TorrentState m_state = TorrentState::Unknown;
         TorrentInfo m_torrentInfo;
         SpeedMonitor m_speedMonitor;

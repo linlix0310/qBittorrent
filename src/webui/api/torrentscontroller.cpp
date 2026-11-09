@@ -399,6 +399,7 @@ void TorrentsController::propertiesAction()
     dataDict[KEY_PROP_UP_SPEED_AVG] = torrent->totalUpload() / ((ulDuration == 0) ? -1 : ulDuration);
     dataDict[KEY_PROP_DL_LIMIT] = torrent->downloadLimit() <= 0 ? -1 : torrent->downloadLimit();
     dataDict[KEY_PROP_UP_LIMIT] = torrent->uploadLimit() <= 0 ? -1 : torrent->uploadLimit();
+    dataDict["governor"] = torrent->governorStatus();
     dataDict[KEY_PROP_WASTED] = torrent->wastedSize();
     dataDict[KEY_PROP_SEEDS] = torrent->seedsCount();
     dataDict[KEY_PROP_SEEDS_TOTAL] = torrent->totalSeedsCount();

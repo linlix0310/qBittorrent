@@ -294,6 +294,10 @@ TorrentImpl::TorrentImpl(Session *session, lt::session *nativeSession
     }
 
     initializeStatus(m_nativeStatus, m_ltAddTorrentParams);
+    m_userUploadLimit = std::max(0, m_ltAddTorrentParams.upload_limit);
+    m_userDownloadLimit = std::max(0, m_ltAddTorrentParams.download_limit);
+    m_governor.restore(params.governorState.toStdString());
+    m_governorRestartUncertain = params.restored;
     updateState();
 
     if (hasMetadata())
@@ -1188,12 +1192,12 @@ qlonglong TorrentImpl::timeSinceActivity() const
 
 int TorrentImpl::downloadLimit() const
 {
-    return m_nativeHandle.download_limit();
+    return m_userDownloadLimit;
 }
 
 int TorrentImpl::uploadLimit() const
 {
-    return m_nativeHandle.upload_limit();
+    return m_userUploadLimit;
 }
 
 bool TorrentImpl::superSeeding() const
@@ -1528,6 +1532,8 @@ void TorrentImpl::reload()
     m_nativeSession->remove_torrent(m_nativeHandle, lt::session::delete_partfile);
 
     lt::add_torrent_params p = m_ltAddTorrentParams;
+    p.upload_limit = Governor::combineLimits(m_userUploadLimit, m_governorUploadLimit);
+    p.download_limit = Governor::combineLimits(m_userDownloadLimit, m_governorDownloadLimit);
     p.flags |= lt::torrent_flags::update_subscribe
             | lt::torrent_flags::override_trackers
             | lt::torrent_flags::override_web_seeds;
@@ -1547,6 +1553,9 @@ void TorrentImpl::reload()
     }
 
     m_nativeHandle = m_nativeSession->add_torrent(p);
+    m_appliedUploadLimit = -1;
+    m_appliedDownloadLimit = -1;
+    applyGovernorLimits();
     m_nativeHandle.queue_position_set(queuePos);
 
     m_torrentInfo = TorrentInfo {m_nativeHandle.torrent_file()};
@@ -1788,6 +1797,9 @@ void TorrentImpl::handleSaveResumeDataAlert(const lt::save_resume_data_alert *p)
     }
 
     m_ltAddTorrentParams.added_time = addedTime().toSecsSinceEpoch();
+    // Temporary governor overlays must never become the user's persisted limits.
+    m_ltAddTorrentParams.upload_limit = m_userUploadLimit;
+    m_ltAddTorrentParams.download_limit = m_userDownloadLimit;
 
     // We shouldn't save upload_mode flag to allow torrent operate normally on next run
     m_ltAddTorrentParams.flags &= ~lt::torrent_flags::upload_mode;
@@ -1816,6 +1828,7 @@ void TorrentImpl::handleSaveResumeDataAlert(const lt::save_resume_data_alert *p)
     resumeData.paused = m_isStopped;
     resumeData.forced = (m_operatingMode == TorrentOperatingMode::Forced);
     resumeData.ltAddTorrentParams = m_ltAddTorrentParams;
+    resumeData.governorState = QByteArray::fromStdString(m_governor.save());
 
     m_session->handleTorrentResumeDataReady(this, resumeData);
 }
@@ -2153,19 +2166,25 @@ void TorrentImpl::setSeedingTimeLimit(int limit)
 
 void TorrentImpl::setUploadLimit(const int limit)
 {
-    if (limit == uploadLimit())
+    const int normalized = std::max(0, limit);
+    if (normalized == m_userUploadLimit)
         return;
 
-    m_nativeHandle.set_upload_limit(limit);
+    m_userUploadLimit = normalized;
+    m_ltAddTorrentParams.upload_limit = normalized;
+    applyGovernorLimits();
     m_session->handleTorrentNeedSaveResumeData(this);
 }
 
 void TorrentImpl::setDownloadLimit(const int limit)
 {
-    if (limit == downloadLimit())
+    const int normalized = std::max(0, limit);
+    if (normalized == m_userDownloadLimit)
         return;
 
-    m_nativeHandle.set_download_limit(limit);
+    m_userDownloadLimit = normalized;
+    m_ltAddTorrentParams.download_limit = normalized;
+    applyGovernorLimits();
     m_session->handleTorrentNeedSaveResumeData(this);
 }
 

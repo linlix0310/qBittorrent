@@ -37,6 +37,7 @@
 
 class QBitArray;
 class QDateTime;
+class QJsonObject;
 class QUrl;
 
 namespace BitTorrent
@@ -239,6 +240,7 @@ namespace BitTorrent
         virtual qlonglong timeSinceActivity() const = 0;
         virtual int downloadLimit() const = 0;
         virtual int uploadLimit() const = 0;
+        virtual QJsonObject governorStatus() const = 0;
         virtual bool superSeeding() const = 0;
         virtual bool isDHTDisabled() const = 0;
         virtual bool isPEXDisabled() const = 0;

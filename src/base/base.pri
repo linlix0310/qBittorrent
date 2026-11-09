@@ -28,6 +28,8 @@ HEADERS += \
     $$PWD/bittorrent/torrentcontentlayout.h \
     $$PWD/bittorrent/torrentcreatorthread.h \
     $$PWD/bittorrent/torrentimpl.h \
+    $$PWD/bittorrent/torrentgovernor.h \
+    $$PWD/bittorrent/torrentgovernorcore.h \
     $$PWD/bittorrent/torrentinfo.h \
     $$PWD/bittorrent/tracker.h \
     $$PWD/bittorrent/trackerentry.h \
@@ -105,6 +107,7 @@ SOURCES += \
     $$PWD/bittorrent/portforwarderimpl.cpp \
     $$PWD/bittorrent/resumedatasavingmanager.cpp \
     $$PWD/bittorrent/session.cpp \
+    $$PWD/bittorrent/torrentgovernor.cpp \
     $$PWD/bittorrent/speedmonitor.cpp \
     $$PWD/bittorrent/statistics.cpp \
     $$PWD/bittorrent/torrent.cpp \

@@ -275,6 +275,10 @@ void WebApplication::doProcessRequest()
     if (!session() && !isPublicAPI(scope, action))
         throw ForbiddenHTTPError();
 
+    if ((scope == QLatin1String("app")) && (action == QLatin1String("setGovernorPreferences"))
+        && (request().method != Http::METHOD_POST))
+        throw BadRequestHTTPError(QStringLiteral("Governor configuration writes require POST."));
+
     DataMap data;
     for (const Http::UploadedFile &torrent : request().files)
         data[torrent.filename] = torrent.data;
