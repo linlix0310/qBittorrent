@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
+// Keep syntax within ES2015 for older Qt JavaScript translation parsers.
 'use strict';
 
 window.qBittorrent = window.qBittorrent || {};
@@ -118,14 +119,13 @@ window.qBittorrent.GovernorEditor = (function() {
             state = response;
             dirty = false;
             populate(response.saved);
-            current.replaceChildren();
+            while (current.firstChild) current.removeChild(current.firstChild);
             const rows = [
                 ['自动限速', response.active.Enabled ? '已启用' : '未启用'],
-                ['管理标签 / 分类', (response.active.TargetTags || '无') + ' / ' + (response.active.TargetCategories || '无')],
-                ...fields.map(([key, unit, label]) => [label, String(response.active[key] / unit)
+                ['管理标签 / 分类', (response.active.TargetTags || '无') + ' / ' + (response.active.TargetCategories || '无')]
+            ].concat(fields.map(([key, unit, label]) => [label, String(response.active[key] / unit)
                     + (key.endsWith('Progress') ? '%' : (key.endsWith('Bps') ? (unit === MiB ? ' MiB/s' : ' KiB/s')
-                        : (key === 'BrakeBufferBytes' ? ' GiB' : (key === 'PeriodSeconds' ? ' 分钟' : ' 秒'))))])
-            ];
+                        : (key === 'BrakeBufferBytes' ? ' GiB' : (key === 'PeriodSeconds' ? ' 分钟' : ' 秒'))))]));
             for (const [label, value] of rows) {
                 const row = document.createElement('tr');
                 const name = document.createElement('th');
@@ -133,60 +133,81 @@ window.qBittorrent.GovernorEditor = (function() {
                 name.scope = 'row';
                 name.textContent = label;
                 cell.textContent = value;
-                row.append(name, cell);
-                current.append(row);
+                row.appendChild(name);
+                row.appendChild(cell);
+                current.appendChild(row);
             }
             status.textContent = !response.saved_valid ? '已保存的配置存在错误，请修正后重新保存。'
                 : (response.pending_restart ? '已保存，等待重启 qBittorrent 后生效；当前运行策略见下方。'
                     : '已保存的配置与当前运行策略一致。');
         }
 
-        async function request(path, options) {
-            const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 15000);
-            try {
-                const response = await fetch('api/v2/app/' + path, Object.assign({
-                    credentials: 'same-origin', cache: 'no-store', signal: controller.signal
-                }, options));
-                if (!response.ok) {
-                    const text = await response.text();
-                    throw new Error(response.status === 409 ? '配置已被其他页面修改，请点击“重新读取”后再保存。'
-                        : ('请求失败 (' + response.status + ')：' + text.slice(0, 500)));
-                }
-                return await response.json();
+        // No async/await: Qt 5's translation-tool parser may reject ES2017.
+        // XHR remains asynchronous and includes same-origin session cookies.
+        function request(path, body, callback) {
+            const xhr = new XMLHttpRequest();
+            let finished = false;
+            function finish(problem, response) {
+                if (finished) return;
+                finished = true;
+                callback(problem, response);
             }
-            finally { clearTimeout(timeout); }
+            try {
+                xhr.open(body === null ? 'GET' : 'POST', 'api/v2/app/' + path, true);
+                xhr.timeout = 15000;
+                xhr.setRequestHeader('Cache-Control', 'no-cache');
+                if (body !== null) xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
+                xhr.onload = function() {
+                    if (xhr.status < 200 || xhr.status >= 300) {
+                        finish(new Error(xhr.status === 409 ? '配置已被其他页面修改，请点击“重新读取”后再保存。'
+                            : ('请求失败 (' + xhr.status + ')：' + xhr.responseText.slice(0, 500))));
+                        return;
+                    }
+                    let response;
+                    try { response = JSON.parse(xhr.responseText); }
+                    catch (problem) { finish(new Error('服务器返回的内容不是有效 JSON，请检查会话或代理。')); return; }
+                    finish(null, response);
+                };
+                xhr.onerror = function() { finish(new Error('网络连接失败，请检查服务和登录状态。')); };
+                xhr.ontimeout = function() { finish(new Error('请求超时（15秒），请重新读取后确认是否已保存。')); };
+                xhr.onabort = function() { finish(new Error('请求已取消。')); };
+                xhr.send(body);
+            }
+            catch (problem) { finish(problem); }
         }
 
-        async function load() {
+        function load() {
             lock(true);
             status.textContent = '正在读取限速策略…';
-            try {
-                const response = await request('governorPreferences');
-                if (root.isConnected) display(response);
-            }
-            catch (problem) {
-                if (root.isConnected) status.textContent = '读取失败：' + problem.message;
-            }
-            finally { if (root.isConnected) lock(false); }
+            request('governorPreferences', null, function(problem, response) {
+                if (!root.isConnected) return;
+                try {
+                    if (problem) throw problem;
+                    display(response);
+                }
+                catch (failure) { status.textContent = '读取失败：' + failure.message; }
+                finally { lock(false); }
+            });
         }
 
-        save.addEventListener('click', async function() {
+        save.addEventListener('click', function() {
             if (busy || !state) return;
             let values;
             try { values = read(); }
             catch (problem) { error.textContent = problem.message; return; }
-            const body = new URLSearchParams({json: JSON.stringify(values), revision: state.revision});
+            const body = 'json=' + encodeURIComponent(JSON.stringify(values))
+                + '&revision=' + encodeURIComponent(state.revision);
             lock(true);
             status.textContent = '正在保存限速策略…';
-            try {
-                const response = await request('setGovernorPreferences', {method: 'POST', body: body});
-                if (root.isConnected) display(response);
-            }
-            catch (problem) {
-                if (root.isConnected) status.textContent = '未确认保存成功：' + problem.message;
-            }
-            finally { if (root.isConnected) lock(false); }
+            request('setGovernorPreferences', body, function(problem, response) {
+                if (!root.isConnected) return;
+                try {
+                    if (problem) throw problem;
+                    display(response);
+                }
+                catch (failure) { status.textContent = '未确认保存成功：' + failure.message; }
+                finally { lock(false); }
+            });
         });
         reload.addEventListener('click', function() {
             if (!dirty || window.confirm('重新读取会丢弃此区域未保存的修改，是否继续？')) load();

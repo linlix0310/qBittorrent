@@ -44,6 +44,7 @@
 #include <QTranslator>
 
 #include "base/bittorrent/session.h"
+#include "base/bittorrent/torrentgovernor.h"
 #include "base/global.h"
 #include "base/net/portforwarder.h"
 #include "base/net/proxyconfigurationmanager.h"
@@ -59,6 +60,28 @@
 #include "base/utils/string.h"
 #include "base/version.h"
 #include "../webapplication.h"
+#include "apierror.h"
+
+void AppController::governorPreferencesAction()
+{
+    setResult(BitTorrent::governorPreferences());
+}
+
+void AppController::setGovernorPreferencesAction()
+{
+    requireParams({"json", "revision"});
+    if (params().value("json").size() > 16384)
+        throw APIError(APIErrorType::BadParams, QStringLiteral("Governor error"));
+    QJsonParseError parseError;
+    const auto document = QJsonDocument::fromJson(params().value("json").toUtf8(), &parseError);
+    if ((parseError.error != QJsonParseError::NoError) || !document.isObject())
+        throw APIError(APIErrorType::BadParams, QStringLiteral("Governor JSON  error"));
+    const auto error = BitTorrent::saveGovernorPreferences(document.object(), params().value("revision"));
+    if (error == QLatin1String("conflict"))
+        throw APIError(APIErrorType::Conflict, QStringLiteral("config error"));
+    if (!error.isEmpty()) throw APIError(APIErrorType::BadParams, error);
+    setResult(BitTorrent::governorPreferences());
+}
 
 void AppController::webapiVersionAction()
 {

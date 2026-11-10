@@ -48,6 +48,8 @@ private slots:
     void preferencesAction();
     void setPreferencesAction();
     void defaultSavePathAction();
+    void governorPreferencesAction();
+    void setGovernorPreferencesAction();
 
     void networkInterfaceListAction();
     void networkInterfaceAddressListAction();
